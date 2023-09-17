@@ -16,7 +16,7 @@ from PIL import Image
 def main():
     
     USE_CITYSCAPES = 0
-    input_file = "samples/23_image.png"
+    input_file = "samples/1_image.png"
     model_name = "deeplabv3plus_mobilenet"
     ckpt = "checkpoints/best_deeplabv3plus_mobilenet_voc_os16.pth"
     
@@ -63,6 +63,7 @@ def main():
             ext = os.path.basename(img_path).split('.')[-1]
             img_name = os.path.basename(img_path)[:-len(ext)-1]
             img = Image.open(img_path).convert('RGB')
+            img_copy = Image.open(img_path).convert('RGB')
             img = transform(img).unsqueeze(0)
             img = img.to(device)
             
@@ -70,8 +71,13 @@ def main():
             
             colorized_preds = decode_fn(pred).astype('uint8')
             colorized_preds = Image.fromarray(colorized_preds)
+            
+            # Overlay colorized_preds and img_copy
+            
+            # colorized_preds.paste(img_copy, (0, 0), img_copy.convert('RGBA'))
+            
             if save_dir:
-                colorized_preds.save(os.path.join(save_dir, img_name + '.png'))
+                Image.blend(img_copy, colorized_preds, alpha = 0.7).save(os.path.join(save_dir, img_name + '.png'))
 
 if __name__ == '__main__':
     main()
