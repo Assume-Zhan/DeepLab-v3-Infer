@@ -90,9 +90,9 @@ def predict_video(file_name):
                 video.write(cv2.cvtColor(np.asarray(blend_image), cv2.COLOR_RGB2BGR))
                 time_diff += (t2 - t1)
                 
-                cv2.imshow("frame", frame)
-                if cv2.waitKey(1) == ord('q'):
-                    break
+                # cv2.imshow("frame", frame)
+                # if cv2.waitKey(1) == ord('q'):
+                #     break
             
     print(f"Total inference time : {time_diff:.3f} for {length} images")
     if time_diff:
