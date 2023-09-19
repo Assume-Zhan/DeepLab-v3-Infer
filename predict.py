@@ -1,5 +1,6 @@
 import network
 import os
+import time
 
 from torch.utils.data import dataset
 from tqdm import tqdm
@@ -12,6 +13,11 @@ import torch
 import torch.nn as nn
 
 from PIL import Image
+
+def time_synchronized():
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+    return time.time()
 
 def predict(image_list):
     
@@ -49,6 +55,7 @@ def predict(image_list):
 
     # Inference
     result_list = []
+    time_diff = 0
     with torch.no_grad():
         model = model.eval()
         for image in tqdm(image_list):
@@ -57,7 +64,9 @@ def predict(image_list):
             image = transform(image).unsqueeze(0)
             image = image.to(device)
 
+            t1 = time_synchronized()
             pred = model(image).max(1)[1].cpu().numpy()[0]
+            t2 = time_synchronized()
 
             colorized_preds = decode_fn(pred).astype('uint8')
             colorized_preds = Image.fromarray(colorized_preds)
@@ -65,6 +74,13 @@ def predict(image_list):
             blend_image = Image.blend(image_copy, colorized_preds, alpha = 0.7)
 
             result_list.append(blend_image)
+            time_diff += (t2 - t1)
+            
+    image_length = len(image_list)
+            
+    print(f"Total inference time : {time_diff:.3f} for {image_length} images")
+    if time_diff:
+        print(f"Total fps : {(image_length / time_diff):.3f}")
 
     return result_list
 
