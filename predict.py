@@ -5,7 +5,7 @@ from torch.utils.data import dataset
 from tqdm import tqdm
 from utils import set_bn_momentum
 
-from datasets import VOCSegmentation, Cityscapes, cityscapes
+from datasets import VOCSegmentation, Cityscapes
 from torchvision import transforms as T
 
 import torch
@@ -13,16 +13,11 @@ import torch.nn as nn
 
 from PIL import Image
 
-def main():
+def predict(image_list):
     
-    USE_CITYSCAPES = 0
-    input_file = "samples/1_image.png"
+    USE_CITYSCAPES = 1
     model_name = "deeplabv3plus_mobilenet"
-    ckpt = "checkpoints/best_deeplabv3plus_mobilenet_voc_os16.pth"
-    
-    save_dir = "test_results"
-    if save_dir is not None:
-        os.makedirs(save_dir, exist_ok=True)
+    ckpt = "checkpoints/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"
         
     if USE_CITYSCAPES:
         decode_fn = Cityscapes.decode_target      # 19
@@ -34,10 +29,6 @@ def main():
     # Check device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("Device: %s" % device)
-
-    # Setup dataloader
-    image_files = []
-    image_files.append(input_file)
     
     # Set up model (all models are 'constructed at network.modeling)
     model = network.modeling.__dict__[model_name](num_classes = nc, output_stride = [8, 16])
@@ -55,29 +46,36 @@ def main():
         T.ToTensor(),
         T.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225]),
     ])
-        
+
     # Inference
+    result_list = []
     with torch.no_grad():
         model = model.eval()
-        for img_path in tqdm(image_files):
-            ext = os.path.basename(img_path).split('.')[-1]
-            img_name = os.path.basename(img_path)[:-len(ext)-1]
-            img = Image.open(img_path).convert('RGB')
-            img_copy = Image.open(img_path).convert('RGB')
-            img = transform(img).unsqueeze(0)
-            img = img.to(device)
-            
-            pred = model(img).max(1)[1].cpu().numpy()[0]
-            
+        for image in tqdm(image_list):
+            image_copy = image
+
+            image = transform(image).unsqueeze(0)
+            image = image.to(device)
+
+            pred = model(image).max(1)[1].cpu().numpy()[0]
+
             colorized_preds = decode_fn(pred).astype('uint8')
             colorized_preds = Image.fromarray(colorized_preds)
-            
-            # Overlay colorized_preds and img_copy
-            
-            # colorized_preds.paste(img_copy, (0, 0), img_copy.convert('RGBA'))
-            
-            if save_dir:
-                Image.blend(img_copy, colorized_preds, alpha = 0.7).save(os.path.join(save_dir, img_name + '.png'))
+
+            blend_image = Image.blend(image_copy, colorized_preds, alpha = 0.7)
+
+            result_list.append(blend_image)
+
+    return result_list
 
 if __name__ == '__main__':
-    main()
+    
+    image_path = "./samples/1_image.png"
+    image_list = []
+    
+    image_list.append(Image.open(image_path).convert('RGB'))
+    
+    result_images = predict(image_list)
+    
+    for image in result_images:
+        image.save("./test_results/result.png")
