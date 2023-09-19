@@ -1,6 +1,8 @@
 import network
 import os
 import time
+import cv2
+import numpy as np
 
 from torch.utils.data import dataset
 from tqdm import tqdm
@@ -20,6 +22,10 @@ def time_synchronized():
     return time.time()
 
 def predict(image_list):
+    
+    video = cv2.VideoWriter("./test_results/demo1.mp4", 
+                            cv2.VideoWriter_fourcc(*"mp4v"), 
+                            30, (2048, 1024))
     
     USE_CITYSCAPES = 1
     model_name = "deeplabv3plus_resnet101"
@@ -54,7 +60,6 @@ def predict(image_list):
     ])
 
     # Inference
-    result_list = []
     time_diff = 0
     with torch.no_grad():
         model = model.eval()
@@ -72,8 +77,12 @@ def predict(image_list):
             colorized_preds = Image.fromarray(colorized_preds)
 
             blend_image = Image.blend(image_copy, colorized_preds, alpha = 0.7)
+            video.write(cv2.cvtColor(np.asarray(blend_image), cv2.COLOR_RGB2BGR))
 
-            result_list.append(blend_image)
+            # Here is a problem
+            # Since we always append a image to a list on System RAM,
+            # if the video is large then it will go crash.
+            # result_list.append(blend_image)
             time_diff += (t2 - t1)
             
     image_length = len(image_list)
@@ -81,8 +90,8 @@ def predict(image_list):
     print(f"Total inference time : {time_diff:.3f} for {image_length} images")
     if time_diff:
         print(f"Total fps : {(image_length / time_diff):.3f}")
-
-    return result_list
+        
+    video.release()
 
 if __name__ == '__main__':
     
