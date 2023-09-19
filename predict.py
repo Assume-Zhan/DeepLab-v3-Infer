@@ -22,8 +22,8 @@ def time_synchronized():
 def predict(image_list):
     
     USE_CITYSCAPES = 1
-    model_name = "deeplabv3plus_mobilenet"
-    ckpt = "checkpoints/best_deeplabv3plus_mobilenet_cityscapes_os16.pth"
+    model_name = "deeplabv3plus_resnet101"
+    ckpt = "checkpoints/best_deeplabv3plus_resnet101_cityscapes_os16.pth.tar"
         
     if USE_CITYSCAPES:
         decode_fn = Cityscapes.decode_target      # 19
